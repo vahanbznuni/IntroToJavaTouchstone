@@ -1,34 +1,11 @@
-package Program;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-
-/*
- * Custom Exception to signal attempts to entry duplicate items into the inventory
- */
-class DuplicateKeyException extends Exception {
-    public DuplicateKeyException() {
-        super();
-    }
-
-    public DuplicateKeyException(String message) {
-        super(message);
-    }
-
-    public DuplicateKeyException(Throwable cause) {
-        super(cause);
-    }
-
-    public DuplicateKeyException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-}
 
 
 /*
@@ -42,15 +19,19 @@ class DuplicateKeyException extends Exception {
 public class Inventory {
     private HashMap<String, HashMap<String, HashMap<String, Item>>> inventory;
 
-    private Inventory(String fileName) {
+    private Inventory() {
         inventory = new HashMap<String, HashMap<String, HashMap<String, Item>>>();
+    }
+
+    public HashMap<String, HashMap<String, HashMap<String, Item>>> getInventory() {
+        return inventory;
     }
 
     /*
      * Instantiate a new Inventory object, load data from provided CSV file, and return it
      */
-    public static Inventory loadFromCSV(String fileName) throws DuplicateKeyException {
-        Inventory inventory = new Inventory(fileName);
+    public static Inventory loadFromCSV(String fileName) throws DuplicateKeyException, CorruptDataException {
+        Inventory inventory = new Inventory();
         inventory.loadData(fileName);
         return inventory;
     }
@@ -61,7 +42,7 @@ public class Inventory {
      * to the internal data structure. It does not automaticallly delete any existing data.
      * The method also assumes that data consists of rows of 4 columns each. 
      */
-    public void loadData(String fileName) throws DuplicateKeyException {
+    public void loadData(String fileName) throws DuplicateKeyException, CorruptDataException {
         File file = new File(fileName);
         List<String> rows = new ArrayList<>();
         
@@ -72,13 +53,20 @@ public class Inventory {
                 String[] rowItems = rows.get(i).split(",");
                 // Check to ensure the row contains 4 elements
                 if (rowItems.length!=4) {
-                    System.out.println("Unexpected input file: extected row length of 4 but found " + rowItems.length);
+                    throw new CorruptDataException("Unexpected input file: extected row length of 4 but found " + rowItems.length);
                 }
                 
-                String departmentName = rowItems[0];
-                String subCategoryName = rowItems[1];
-                String itemName = rowItems[2];
-                String itemDescription = rowItems[3];
+                String departmentName = rowItems[0].strip();
+                String subCategoryName = rowItems[1].strip();
+                String itemName = rowItems[2].strip();
+                String itemDescription = rowItems[3].strip();
+                if ((
+                    itemDescription.length()>=2 && 
+                    itemDescription.startsWith("\"") &&  
+                    itemDescription.endsWith("\""))
+                ) {
+                    itemDescription = itemDescription.substring(1, itemDescription.length()-1);
+                } 
                 addItem(departmentName, subCategoryName, itemName, itemDescription);
             }
         } catch (IOException ex) {
@@ -92,7 +80,12 @@ public class Inventory {
      * extracts each item with it's corresponding informaiton, and writes it to the CSV on disk.
      */
     public void saveData(String fileName) throws IOException {
+        String backupFileName = getBackupFileName(fileName);
         File file = new File(fileName);
+
+        // Make a backup copy of the data file
+        File backupFile = new File(backupFileName);
+        Files.move(file.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
         // Iterate depth-first over each department, each subCategory within, each
         // Item within, and write each item's information - along with corresponding
@@ -106,7 +99,7 @@ public class Inventory {
                     // Just a sanity check
                     assert itemName.equals(item.getName());
 
-                    // If Add quotation symbols to item description string (unless already there)
+                    // Add quotation symbols to item description string (unless already there)
                     // so that any potential commas (,) do not corrupt the CSV format
                     String itemDescription = item.getDescription();
                     if (!(
@@ -121,13 +114,27 @@ public class Inventory {
                         departmentName + ", " +
                         subCategoryName + ", " +
                         itemName + ", " + 
-                        itemDescription
+                        itemDescription + "\n"
                     );
 
                     Files.writeString(file.toPath(), row, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
                 }
             }
         }
+    }
+
+    /*
+     * Utility method to generate file name for backup file
+     */
+    private String getBackupFileName(String fileName) throws IllegalArgumentException {
+        String[] fileNameElements = fileName.split("\\.");
+        if (fileNameElements.length != 2) {
+            throw new IllegalArgumentException("Unexpected file name.");
+        }
+        String baseName = fileNameElements[0];
+        String extension = fileNameElements[1];
+        String backupFileName = baseName + "_bak." + extension;
+        return backupFileName;
     }
 
     /*

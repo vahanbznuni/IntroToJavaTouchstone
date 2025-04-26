@@ -23,3 +23,8 @@
 hs_err_pid*
 replay_pid*
 design
+.DS_Store
+touchstone -wip.docx
+tempCodeRunnerFile.java
+data_bak.csv
+testMisc.java

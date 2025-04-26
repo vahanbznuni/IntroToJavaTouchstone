@@ -1,5 +1,3 @@
-package Program;
-
 public class Item {
     private String name;
     private String description;
@@ -27,10 +25,8 @@ public class Item {
 
     @Override
     public String toString() {
-        String output = "Item Name: ";
-        output += name + "\n";
-        output += "Item Description: ";
-        output += description + "\n";
+        String output = "\nItem: \n" + name + "\n";
+        output += "\nDescription: \n" + description + "\n";
 
         return output;
     }
