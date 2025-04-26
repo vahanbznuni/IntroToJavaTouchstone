@@ -10,24 +10,30 @@ import java.util.List;
 
 /*
  * Main data structure of the program.
- * Uses nested hashmaps (HashMap) to hiearchically store departments,
+ * Uses nested hashmaps (HashMap) to hieararchically store departments,
  * subcategories within departments, and list of items in each department
  * 
- * The class provides an interface for programmatic CRUD operations, and it is up to
+ * The class provides an interface for programmatic CRUD operations, and leaves it up to
  * a driver/orchestrator class to provide the logic for CLI interaction by the user.
  */
 public class Inventory {
     private HashMap<String, HashMap<String, HashMap<String, Item>>> inventory;
 
+    /*
+     * Private constructor that is called by the public factory method
+     * Initializes a nested HashMap of HashMaps that holds the inventory data
+     */ 
     private Inventory() {
         inventory = new HashMap<String, HashMap<String, HashMap<String, Item>>>();
     }
 
+    // Accessor for the HashMap that holds the invenory data
     public HashMap<String, HashMap<String, HashMap<String, Item>>> getInventory() {
         return inventory;
     }
 
     /*
+     * Public factory method for creating a new instance.
      * Instantiate a new Inventory object, load data from provided CSV file, and return it
      */
     public static Inventory loadFromCSV(String fileName) throws DuplicateKeyException, CorruptDataException {
@@ -39,8 +45,11 @@ public class Inventory {
     /*
      * Load data from a provided CSV file
      * Note, this method iterates over all the rows in the provided file and adds the data
-     * to the internal data structure. It does not automaticallly delete any existing data.
-     * The method also assumes that data consists of rows of 4 columns each. 
+     * to the internal data structure (the Hashmap). It does not automatically delete any existing data.
+     * The method also assumes that data consists of rows of 4 columns each.
+     * 
+     * It throws an error if the data contains duplicate items (based on their names),
+     * and if there are any rows that do not contain 4 columns
      */
     public void loadData(String fileName) throws DuplicateKeyException, CorruptDataException {
         File file = new File(fileName);
@@ -76,8 +85,10 @@ public class Inventory {
 
     /*
      * Save data to a CSV file.
-     * Note: this method iterates through the classe's internal data structure,
+     * Note: this method iterates through the classe's internal data structure (the Hash Map),
      * extracts each item with it's corresponding informaiton, and writes it to the CSV on disk.
+     * 
+     * It also makes a backup of the data file.
      */
     public void saveData(String fileName) throws IOException {
         String backupFileName = getBackupFileName(fileName);
@@ -138,7 +149,7 @@ public class Inventory {
     }
 
     /*
-     * Add provided item with it's corresponding fields to the internal data structure (i.e. the inventory)
+     * Store the provided item (using provided data) in the inventory (the Hashmap)
      */
     public void addItem(
         String departmentName, 

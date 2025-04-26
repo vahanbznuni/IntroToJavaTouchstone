@@ -1,3 +1,8 @@
+/*
+ * Class to represent an inventory item.
+ * Includes Name and Description fields, accessor methods,
+ * and a toString override to present the item's namd and description.
+ */
 public class Item {
     private String name;
     private String description;
@@ -23,6 +28,9 @@ public class Item {
         this.description = description;
     }
 
+    /*
+     * Output item's name and description in a readable format.
+     */
     @Override
     public String toString() {
         String output = "\nItem: \n" + name + "\n";
